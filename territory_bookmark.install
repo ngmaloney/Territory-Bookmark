@@ -1,0 +1,51 @@
+<?php
+// $id$
+
+/**
+ * Implementation of hook_install()
+**/
+function territory_bookmark_install() {
+  drupal_install_schema('territory_bookmark');
+}
+
+/**
+ * Function of hook_uninstall()
+**/
+function territory_bookmark_uninstall() {
+  drupal_uninstall_schema('territory_bookmark');
+}
+
+/**
+ * Implementation of hook_schema()
+**/
+function territory_bookmark_schema() {
+  $schema['territory_bookmark'] = array(
+    'description' => t("Stores URLS as node type 'territory_bookmark'"),
+      'fields' => array(
+        'nid' => array(
+         'type' => 'int',
+         'unsigned' => TRUE,
+         'not null' => TRUE,
+         'default' => 0,
+         'description' => t("This bookmark's {node}.nid."),
+        ),
+        'vid' => array(
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'default' => 0,
+          'description' => t("This bookmark's {node}.vid."),
+        ),
+        'url' => array(
+          'type' => 'text',
+          'not null' => TRUE,
+          'description' => t('URL of bookmark.'),
+        ),
+      ),
+      'primary key' => array('nid', 'vid'),
+      'unique keys' => array(
+        'vid' => array('vid')
+      )   
+  );
+  return $schema;  
+}

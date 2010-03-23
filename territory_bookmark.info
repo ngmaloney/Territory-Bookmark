@@ -1,0 +1,5 @@
+; $id$
+name = Territory Bookmarks
+description = A content type for storing bookmarks for Territory Real Estate
+package = Territory Real Estate
+core = 6.x

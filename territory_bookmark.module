@@ -1,0 +1,171 @@
+<?php
+// $id$
+
+/**
+ * @file
+ * Provides Bookmark node type.
+**/
+
+/**
+ * Implementation of hook_node_info()
+**/
+function territory_bookmark_node_info() {
+  return array(
+    'territory_bookmark' => array(
+      'name' => t('Territory Bookmark'),
+      'module' => 'territory_bookmark',
+      'description' => t('Saves a user submitted bookmark.'),
+      'has_title' => TRUE,
+      'title_label' => t('Link Title'),
+      'has_body' => TRUE,
+      'body_label' => t('Bookmark Notes'),
+      'locked' => TRUE,
+    )
+  );  
+}
+
+/** 
+ * Implementation of hook_perm()
+**/
+function territory_bookmark_perm() {
+  return array(
+    'view bookmark',
+    'view own bookmark',
+    'create bookmark',
+    'edit own bookmark',
+    'edit any bookmark',
+    'delete own bookmark',
+    'delete any bookmark'
+  );
+}
+
+/**
+ * Implementation of hook_access()
+**/
+function territory_bookmark_access($op, $node) {
+  global $user;
+  switch($op) {
+    case 'view':
+      return ($user->uid == $node->uid) && user_access('view own bookmark');
+    case 'update':
+    case 'delete':
+      return ($user->uid == $node->uid) && user_access('edit own bookmark');
+    case 'create':
+      return user_access('create bookmark');
+  }
+}
+
+/**
+ * Implementation of hook_form()
+**/
+function territory_bookmark_form($node) {
+  $type = node_get_types('type', $node);
+  $form['title'] = array(
+    '#type' => 'textfield',
+    '#title' => check_plain($type->title_label),
+    '#required' => TRUE,
+    '#default_value' => $node->title,
+    '#maxlength' => 255,
+    //'#weight' => -20,
+  );
+  $form['url'] = array(
+    '#type' => 'textfield',
+    '#title' => t('URL'),
+    '#required' => TRUE,
+    '#default_value' => isset($node->url) ? $node->url : '',
+    '#maxlength' => 255,
+    //'#weight' => -19,
+  );
+  $form['body'] = array(
+    '#type' => 'textarea',
+    '#title' => check_plain($type->body_label),
+    '#default_value' => $node->body,
+    '#rows' => 5,
+    '#required' => FALSE,
+    //'#weight' => -18,
+  );
+  $form['body_filter']['filter'] = filter_form($node->format);
+  return $form;
+}
+
+/**
+ * Implementation of hook_validate()
+**/
+function territory_bookmark_validate($node) {
+  if(isset($node->url) && !valid_url($node->url,TRUE)) {
+    $type = node_get_types('type',$node);
+    form_set_error('territory_bookmark', t('URL entered appears invalid'), array('@type' => $type->name));
+  }
+}
+
+/**
+ * Implementation of hook_insert()
+**/
+function territory_bookmark_insert($node) {
+  db_query(
+    "INSERT INTO {territory_bookmark} (nid, vid, url) VALUES (%d, %d, '%s')",
+    $node->nid, $node->vid, $node->url
+  );
+}
+
+/**
+ * Implementation of hook_update()
+**/
+function territory_bookmark_update($node) {
+ if($node->revision) {
+   territory_bookmark_insert($node);
+ } 
+ else {
+   db_query(
+     "UPDATE {territory_bookmark} SET url = '%s' WHERE vid = %d",
+     $node->url, $node->vid
+  );
+ }  
+}
+
+/**
+ * Implementation of hook_delete()
+**/
+function territory_bookmark_delete($node) {
+  db_query('DELETE FROM {territory_bookmark} WHERE nid = %d', $node->nid);
+}
+
+/**
+ * Implementation of hook_load()
+**/
+function territory_bookmark_load($node) {
+  return db_fetch_object(db_query('SELECT url FROM {territory_bookmark} WHERE vid = %d', $node->vid));
+}
+
+/**
+ * Implementation of hook_view()
+**/
+function territory_bookmark_view($node, $teaser = FALSE, $page = FALSE) {
+  $node = node_prepare($node, $teaser);
+  if (!$teaser) {
+    $node->content['url'] = array(
+      '#value' => theme('territory_bookmark_url',$node),
+      '#weight' => 2
+    );
+  }
+  return $node;
+}
+
+/**
+ * Implementation of hook_theme()
+**/
+function territory_bookmark_theme() {
+  return array(
+    'territory_bookmark_url' => array(
+      'arguments' => array('node'),
+    ),
+  );
+}
+
+/**
+ * Implemenation of hook_theme()
+**/
+function theme_territory_bookmark_url($node) {
+  $output = l($node->url,$node->url);
+  return $output;
+}
